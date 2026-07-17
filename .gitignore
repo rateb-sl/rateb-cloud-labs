@@ -1,0 +1,13 @@
+# Secrets and local credentials
+*.pem
+*.key
+.env
+.env.*
+
+# Local logs and generated backup files
+*.log
+*.tar.gz
+*.sha256
+
+# macOS
+.DS_Store
