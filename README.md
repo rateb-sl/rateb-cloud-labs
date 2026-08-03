@@ -11,6 +11,11 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 | [01. Verified Linux backup workflow](labs/01-verified-linux-backup/) | Safe archive creation, checksum evidence, restore testing, and a simple audit log. |
 | [02. Linux service operations](labs/02-linux-service-operations/) | The difference between a package, a running service, and boot-time enablement. |
 | [03. EC2 user data for Apache](labs/03-ec2-user-data-httpd/) | First-boot setup on Amazon Linux 2023 and a practical cloud-init troubleshooting path. |
+| [04. VPC and public web server](labs/04-vpc-public-web-server/) | A complete HTTP path through a custom VPC: subnets, route tables, an Internet Gateway, a security group, and EC2 user data. |
+| [05. Website outage runbook](labs/05-website-outage-runbook/) | Outside-in troubleshooting of an unreachable website: reproduce, isolate, fix, verify. |
+| [06. IAM permissions lab](labs/06-iam-permissions-lab/) | Three users, three permission walls: how policy inheritance and least privilege actually work. |
+| [07. Bash scripting challenge](labs/07-bash-scripting-challenge/) | A continuing numbered-files script with no hard-coded starting numbers. |
+| [08. AWS security hardening walkthroughs](labs/08-security-hardening-walkthroughs/) | Guided walkthroughs for Amazon Inspector, Systems Manager Patch Manager, and KMS encryption. |
 
 ## Working principles
 
@@ -26,7 +31,12 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 labs/
 ├── 01-verified-linux-backup/
 ├── 02-linux-service-operations/
-└── 03-ec2-user-data-httpd/
+├── 03-ec2-user-data-httpd/
+├── 04-vpc-public-web-server/
+├── 05-website-outage-runbook/
+├── 06-iam-permissions-lab/
+├── 07-bash-scripting-challenge/
+└── 08-security-hardening-walkthroughs/
 ```
 
 ## Scope and safety
