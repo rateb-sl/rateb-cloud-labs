@@ -11,3 +11,44 @@
 
 # macOS
 .DS_Store
+
+# === Hardened additions (security sweep) ===
+
+# Cloud provider credentials
+.aws/
+.azure/
+gcloud/
+*.tfvars
+*.tfstate
+*.tfstate.*
+credentials.json
+credentials
+config.json
+saml.json
+*.p12
+*.pfx
+*.asc
+*.gpg
+*.jks
+*.keystore
+*.truststore
+
+# SSH keys (private only; .pub files are safe)
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*.ppk
+
+# Generic secret files
+secrets.yaml
+secrets.yml
+secret*.yaml
+secret*.yml
+*.secret
+.env.local
+.env.production
+
+# CLI local state
+.terraform/
+plan.out
