@@ -16,6 +16,7 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 | [06. IAM permissions lab](labs/06-iam-permissions-lab/) | Three users, three permission walls: how policy inheritance and least privilege actually work. |
 | [07. Bash scripting challenge](labs/07-bash-scripting-challenge/) | A continuing numbered-files script with no hard-coded starting numbers. |
 | [08. AWS security hardening walkthroughs](labs/08-security-hardening-walkthroughs/) | Guided walkthroughs for Amazon Inspector, Systems Manager Patch Manager, and KMS encryption. |
+| [09. Cost monitoring with Cost Explorer + Budgets](labs/09-cost-monitoring-explorer-budgets/) | A $100 monthly budget with graduated alerts (50/75/90% actual + 100% forecast) delivered over SNS. |
 
 ## Working principles
 
@@ -36,7 +37,8 @@ labs/
 ├── 05-website-outage-runbook/
 ├── 06-iam-permissions-lab/
 ├── 07-bash-scripting-challenge/
-└── 08-security-hardening-walkthroughs/
+├── 08-security-hardening-walkthroughs/
+└── 09-cost-monitoring-explorer-budgets/
 ```
 
 ## Scope and safety
