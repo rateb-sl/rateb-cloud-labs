@@ -17,6 +17,7 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 | [07. Bash scripting challenge](labs/07-bash-scripting-challenge/) | A continuing numbered-files script with no hard-coded starting numbers. |
 | [08. AWS security hardening walkthroughs](labs/08-security-hardening-walkthroughs/) | Guided walkthroughs for Amazon Inspector, Systems Manager Patch Manager, and KMS encryption. |
 | [09. Cost monitoring with Cost Explorer + Budgets](labs/09-cost-monitoring-explorer-budgets/) | A $100 monthly budget with graduated alerts (50/75/90% actual + 100% forecast) delivered over SNS. |
+| [10. Secrets Manager + Lambda](labs/10-secrets-manager-lambda/) | No hardcoded credentials: a Lambda function retrieves a secret at runtime via the Parameters and Secrets extension. |
 
 ## Working principles
 
@@ -38,7 +39,8 @@ labs/
 ├── 06-iam-permissions-lab/
 ├── 07-bash-scripting-challenge/
 ├── 08-security-hardening-walkthroughs/
-└── 09-cost-monitoring-explorer-budgets/
+├── 09-cost-monitoring-explorer-budgets/
+└── 10-secrets-manager-lambda/
 ```
 
 ## Scope and safety
