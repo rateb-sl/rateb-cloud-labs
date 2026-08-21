@@ -18,6 +18,7 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 | [08. AWS security hardening walkthroughs](labs/08-security-hardening-walkthroughs/) | Guided walkthroughs for Amazon Inspector, Systems Manager Patch Manager, and KMS encryption. |
 | [09. Cost monitoring with Cost Explorer + Budgets](labs/09-cost-monitoring-explorer-budgets/) | A $100 monthly budget with graduated alerts (50/75/90% actual + 100% forecast) delivered over SNS. |
 | [10. Secrets Manager + Lambda](labs/10-secrets-manager-lambda/) | No hardcoded credentials: a Lambda function retrieves a secret at runtime via the Parameters and Secrets extension. |
+| [11. Secure EC2 management with Systems Manager](labs/11-secure-ec2-systems-manager/) | Session Manager, Run Command, IAM caller separation, fail-fast troubleshooting, CloudWatch session logging, and cleanup verification. |
 
 ## Working principles
 
@@ -40,7 +41,8 @@ labs/
 ├── 07-bash-scripting-challenge/
 ├── 08-security-hardening-walkthroughs/
 ├── 09-cost-monitoring-explorer-budgets/
-└── 10-secrets-manager-lambda/
+├── 10-secrets-manager-lambda/
+└── 11-secure-ec2-systems-manager/
 ```
 
 ## Scope and safety
