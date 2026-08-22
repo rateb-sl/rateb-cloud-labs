@@ -16,7 +16,7 @@ managed node
 
 Compliance means “matches this baseline.” It is not a complete security verdict.
 
-## Implementation and verification
+## Implementation
 
 1. Confirm the Region, managed-node registration, and baseline ownership.
 2. Read the baseline rules and identify the missing or non-compliant patches.

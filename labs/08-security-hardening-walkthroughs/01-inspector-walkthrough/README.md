@@ -17,7 +17,7 @@ resource inventory
 
 A finding is a signal requiring triage. It is not proof of compromise, and coverage is not the same as security.
 
-## Implementation and verification
+## Implementation
 
 1. Confirm the account, Region, target resource, and Inspector coverage state.
 2. Read the finding's resource, package, CVE, severity, and remediation guidance.

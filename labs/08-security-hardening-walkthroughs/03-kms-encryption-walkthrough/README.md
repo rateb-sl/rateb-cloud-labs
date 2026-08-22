@@ -16,7 +16,7 @@ plaintext
 
 Encryption is reversible transformation controlled by key permissions. The encryption context is authenticated metadata; it is not a secret and must match during decrypt.
 
-## Implementation and verification
+## Implementation
 
 1. Confirm the account, Region, key ownership, and intended disposable input.
 2. Read the key policy and distinguish administrators from users who may encrypt/decrypt.
