@@ -1,6 +1,6 @@
 # Systems Manager Patch Manager: baseline, compliance, re-check
 
-## Scope
+## Goal
 
 Use this walkthrough to evaluate a managed node against a patch baseline, apply the smallest required change, and verify compliance against the same baseline.
 

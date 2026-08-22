@@ -1,6 +1,6 @@
 # Amazon Inspector: assess, remediate, verify
 
-## Scope
+## Goal
 
 Use this walkthrough to activate vulnerability assessment, interpret a package finding, apply the smallest remediation, and verify the same finding state again.
 

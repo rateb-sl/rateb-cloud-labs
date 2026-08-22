@@ -1,6 +1,6 @@
 # KMS encryption: key policy, encrypt, decrypt, verify
 
-## Scope
+## Goal
 
 Use this walkthrough to create or identify a symmetric KMS key, separate key-administrator and key-user responsibilities, and prove an encryption/decryption round trip.
 
