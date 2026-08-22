@@ -246,7 +246,7 @@ The observed simulator results were:
 
 The combined principal simulation and isolated custom-policy simulation were both necessary. The combined result shows what an identity experiences with all attached policies; the isolated result shows whether one policy expresses the intended rule without another Allow masking it.
 
-### 7. Clean up in reverse dependency order
+## Cleanup
 
 Cleanup removed:
 
