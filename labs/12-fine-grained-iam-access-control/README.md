@@ -1,259 +1,313 @@
-# Fine-grained IAM access control: reason about requests, not just users
+# Fine-grained IAM access control: authorization from request context
 
 ## Goal
 
-Build a controlled AWS authorization experiment where access changes according to identity, resource, session, and request context.
+Build a controlled AWS authorization environment where access depends on the caller, requested action, target resource, and request context.
 
-The transferable lesson is not memorizing IAM JSON. It is learning to answer, for every request:
+The implementation demonstrates four IAM condition patterns and three policy surfaces:
 
-```text
-Who is calling?
-What action are they requesting?
-Which resource does that action target?
-What context is present?
-Which policy layers apply?
-What evidence proves the decision?
-```
+- time-based access
+- source-IP restrictions
+- tag-based attribute access control (ABAC)
+- recent-MFA requirements
+- IAM role trust policy
+- S3 resource policy
+- STS session scope-down policy
 
-This lab uses a temporary S3 bucket, a CloudWatch log group, a tagged IAM user, a tagged IAM role, condition-based policies, an S3 resource policy, and IAM policy simulation.
+The important engineering result is a verifiable authorization model, not a collection of broad permissions.
 
 ## Environment
 
-- AWS CLI v2 on macOS or AWS CloudShell
-- Python 3 for local JSON generation and validation
-- A disposable AWS account or sandbox
-- An explicitly configured AWS Region
-- An administrator or delegated operator identity for setup and cleanup
-- No access keys or passwords created for the temporary test user
+- AWS CLI v2 from a Mac terminal or AWS CloudShell
+- Python 3 for generating and validating policy JSON
+- Disposable AWS account
+- Explicit AWS Region
+- Temporary S3 bucket and CloudWatch log group
+- Temporary IAM user and role
+- No access keys or passwords created for the test user
 
-The examples use placeholders. Replace them locally; do not commit account IDs, ARNs with real identifiers, credentials, private keys, or raw terminal output.
+All examples use placeholders such as `<account-id>`, `<bucket-name>`, and `<region>`. Replace them only in a disposable environment. Never commit account identifiers, credentials, private keys, or raw terminal output.
 
-## Architecture and mental model
+## Architecture
 
 ```text
-Human/admin CLI identity
-        |
-        +--> IAM: create principals, policies, attachments, simulations
-        +--> S3: create/configure bucket, upload controlled object
-        +--> CloudWatch Logs: create/configure log group
+Human/admin caller
+      |
+      +--> IAM: create principals, policies, attachments, simulations
+      +--> S3: create/configure bucket and upload a test object
+      +--> CloudWatch Logs: create/configure log group
 
-Temporary IAM user
+Test user
   +-- business-hours policy
   +-- IP-restriction policy
   +-- tag-based ABAC policy
   +-- MFA-required policy
 
-Temporary IAM role
+Test role
   +-- trust policy: who may assume it?
-  +-- business-hours permission policy: what may it do?
-  +-- optional STS scope-down: what may this session do at most?
+  +-- business-hours policy: what may it do?
+  +-- optional STS scope-down: what may one session do at most?
 
 S3 bucket
   +-- public-access block
   +-- default AES256 encryption
-  +-- resource policy: encrypted role writes, role reads, HTTPS-only transport
-  +-- tagged test object
+  +-- resource policy for role access and HTTPS-only transport
+  +-- tagged object under Engineering/
 ```
 
-A useful AWS infrastructure lifecycle is:
+## Authorization model
+
+Every request is evaluated as:
 
 ```text
-discover context
-→ define desired state
-→ identify dependencies and blast radius
-→ create the smallest foundation
-→ apply guardrails
-→ connect identities, policies, and resources
-→ verify state and behavior separately
-→ test failure paths
-→ measure cost
-→ clean up in reverse dependency order
+caller
+  → action
+  → resource
+  → request context
+  → applicable identity/resource/session policies
+  → explicit deny check
+  → decision
 ```
 
-## Policy layers
+The policy surfaces answer different questions:
 
-| Layer | Question | This lab's example |
+| Surface | Question | Implementation |
 |---|---|---|
-| Identity policy | What may this user or role do? | Time, IP, tag, and MFA policies |
-| Trust policy | Who may assume this role? | The temporary test user with Region/IP conditions |
-| Resource policy | What does the bucket accept? | Encrypted role uploads and secure transport |
-| Session policy | What may one temporary session do at most? | CloudWatch Logs for one log group |
-| Request context | Under what conditions? | Time, IP, MFA, tags, transport |
-| Explicit Deny | What must be blocked regardless of other Allows? | Non-approved IPs and insecure transport |
+| Identity policy | What may the user or role do? | Four condition-based managed policies |
+| Trust policy | Who may enter the role? | Test user + Region/IP conditions |
+| Resource policy | What does the bucket accept? | Encrypted role uploads, role reads, HTTPS-only transport |
+| Session policy | What may one temporary session do at most? | One CloudWatch log group |
 
 An explicit Deny overrides an Allow. If no matching Allow exists, the result is an implicit deny.
 
-## Build sequence: what each stage is for
+## Implementation
 
-### 1. Confirm the target context
+### 1. Establish the target context
 
-Verify the Region, account, and caller before any mutation. A correct command pointed at the wrong account is still a failed operation.
+Before any mutation, confirm the account, Region, and caller:
 
-**Evidence limit:** identity and Region checks prove the target context, not every required permission.
+```bash
+AWS_REGION="$(aws configure get region)"
+aws sts get-caller-identity --region "$AWS_REGION"
+```
 
-### 2. Create a durable local manifest
+This prevents a correct command from creating resources in the wrong account or Region. The check proves caller identity and configuration; it does not prove that every required service permission exists.
 
-Persist stable inputs such as the project name, Region, resource names, test time, and local policy directory. This makes reruns and cleanup deterministic.
+### 2. Create a repeatable resource boundary
 
-**Design principle:** persist stable inputs; derive calculated ARNs and names when a shell starts.
+The setup derives one project prefix and uses it for every temporary resource:
 
-### 3. Create and secure the foundation
+```bash
+PROJECT_NAME="finegrained-access-<timestamp>"
+BUCKET_NAME="${PROJECT_NAME}-<account-id>-test-bucket"
+LOG_GROUP_NAME="/aws/lambda/${PROJECT_NAME}"
+```
 
-Create the S3 bucket and CloudWatch log group, then immediately apply:
+The names are persisted locally so an interrupted run can resume without losing track of ownership. The design pattern is:
 
-- S3 public-access block
-- S3 default AES256 encryption
-- Seven-day CloudWatch retention
+```text
+stable inputs → deterministic names → repeatable operations → safe cleanup
+```
 
-Resource existence is not the same as safe configuration. Read each setting back after writing it.
+Create the S3 bucket and log group, then apply guardrails immediately:
 
-### 4. Define policies as separate, testable ideas
+```bash
+aws s3api put-public-access-block \
+  --bucket "$BUCKET_NAME" \
+  --public-access-block-configuration \
+  BlockPublicAcls=true,IgnorePublicAcls=true,BlockPublicPolicy=true,RestrictPublicBuckets=true
 
-Generate separate documents for:
+aws s3api put-bucket-encryption \
+  --bucket "$BUCKET_NAME" \
+  --server-side-encryption-configuration \
+  '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
 
-- Business-hours access
-- Source-IP restrictions
-- Tag-based ABAC
-- Recent-MFA writes
-- Role trust
-- S3 bucket resource policy
-- STS session scope-down
+aws logs put-retention-policy \
+  --log-group-name "$LOG_GROUP_NAME" \
+  --retention-in-days 7
+```
 
-For every statement, identify the principal, action, resource, condition, and expected failure mode.
+Resource existence is not the same as safe configuration. Each setting was read back before continuing.
 
-The S3 ARN distinction is fundamental:
+### 3. Define policies at the correct resource scope
+
+The policy documents are kept under [`policies/`](policies/). They are supporting implementation artifacts; the design decision for each one is documented here beside its role in the system.
+
+#### Bucket and object ARN scope
+
+S3 actions operate at different resource scopes:
 
 ```text
 s3:ListBucket → arn:aws:s3:::<bucket-name>
 s3:GetObject  → arn:aws:s3:::<bucket-name>/*
+s3:PutObject  → arn:aws:s3:::<bucket-name>/*
 ```
 
-### 5. Create principals and attributes
+Using the wrong ARN scope produces a policy that may be valid JSON but cannot express the intended permission.
 
-Create a temporary user without credentials and a temporary role with a one-hour maximum session. Add tags such as `Department=Engineering`.
+#### Upload conditions belong to upload actions
 
-Identity and permission are separate. A principal can exist without being able to perform any useful action.
+The bucket policy separates writes from reads:
 
-### 6. Attach policies in dependency order
+```json
+{
+  "Sid": "AllowTestRoleEncryptedWrites",
+  "Effect": "Allow",
+  "Principal": {
+    "AWS": "arn:aws:iam::<account-id>:role/<test-role-name>"
+  },
+  "Action": "s3:PutObject",
+  "Resource": "arn:aws:s3:::<bucket-name>/*",
+  "Condition": {
+    "StringEquals": {
+      "s3:x-amz-server-side-encryption": "AES256"
+    }
+  }
+}
+```
 
-Create managed policies, attach the four identity policies to the user, and attach the business-hours permission policy to the role. Apply the bucket resource policy only after the role exists.
+`GetObject` is a separate statement without an upload-header condition. Access Analyzer caught the original design when the encryption condition was combined with both `GetObject` and `PutObject`.
 
-This is a dependency graph, not merely a list of commands:
+#### Conditional identity policies
+
+The four managed policies each express one control:
+
+- **Business hours:** `aws:CurrentTime` limits S3 access to a UTC demonstration window.
+- **IP restriction:** an Allow covers documented test ranges; an explicit Deny blocks other non-service requests.
+- **ABAC:** `aws:PrincipalTag/Department` must match `s3:ExistingObjectTag/Department`.
+- **MFA:** reads are allowed without MFA; writes require MFA and an MFA age under 3,600 seconds.
+
+The policy documents were generated with Python rather than unsafe shell substitution so IAM policy variables such as `${s3:ExistingObjectTag/Department}` remain literal.
+
+### 4. Create principals before applying relationships
+
+The temporary user was created without credentials and tagged:
 
 ```text
-principal → policy → attachment → resource relationship
+Department = Engineering
+Project    = <project-name>
 ```
 
-### 7. Create one controlled fixture
-
-Upload one object at `Engineering/test-file.txt` with AES256 encryption and `Department=Engineering` plus a project tag.
-
-A small known fixture makes policy behavior observable and cleanup predictable.
-
-### 8. Test in isolation and in combination
-
-Use principal simulation to see what the complete identity experiences. Use custom-policy simulation to test one policy's logic without unrelated Allows masking the result.
-
-The two tests answer different questions:
+The temporary role was created with a one-hour maximum session and tagged:
 
 ```text
-Combined simulation: what would this identity experience?
-Isolated simulation: does this policy express the intended rule?
+Department  = Engineering
+Environment = Lab
 ```
 
-### 9. Test both success and failure paths
+The role trust policy and the role permission policy answer different questions:
 
-The observed decision matrix was:
+```text
+Trust policy     → who may assume the role?
+Permission policy → what may the role do after assumption?
+```
 
-| Test | Observed result | Reason |
-|---|---|---|
-| Matching principal/object tags | `allowed` | ABAC condition matched |
-| Mismatched tags | `implicitDeny` | No tag-based Allow matched |
-| MFA absent for `PutObject` | `implicitDeny` | MFA condition failed |
-| MFA present and 1,800 seconds old | `allowed` | Both MFA conditions matched |
-| Role `GetObject` inside business hours | `allowed` | Time condition matched |
-| Allowed source IP | `allowed` | Allow matched and Deny did not |
-| Disallowed source IP | `explicitDeny` | Explicit Deny matched |
+Managed policies were then attached to the user, and the business-hours policy was attached to the role. A policy that merely exists in IAM has no effect until it is attached or applied through the relevant resource/session surface.
 
-Predict the result before running the simulator. That is the judgment skill.
+### 5. Apply the S3 resource policy and create a controlled fixture
 
-### 10. Clean up in reverse dependency order
+After the role existed, the resource policy was applied to the bucket. A single object was uploaded with explicit encryption and tags:
 
-Remove object data, policy attachments, principals, managed policies, resource policies, buckets, log groups, and local files. Verify absence directly. A success message is not cleanup evidence.
+```bash
+aws s3api put-object \
+  --bucket "$BUCKET_NAME" \
+  --key "Engineering/test-file.txt" \
+  --body "$TEST_FILE" \
+  --tagging "Department=Engineering&Project=${PROJECT_NAME}" \
+  --server-side-encryption AES256
+```
 
-## Verification
+The object is a controlled fixture for policy evaluation. Its key, encryption state, and tags are known, so each test changes one request-context variable at a time.
 
-The real execution verified:
+### 6. Validate state and behavior separately
 
-- S3 public-access block: all four settings `true`
-- S3 default encryption: `AES256`
-- S3 public-status evaluation: `IsPublic=false`
+The implementation used several evidence layers:
+
+| Layer | What it proves |
+|---|---|
+| JSON validation | The local file is syntactically valid JSON |
+| Access Analyzer | AWS can interpret the policy semantics |
+| `get`/`list`/`head` APIs | The requested AWS state exists and has the expected configuration |
+| Policy simulator | A supplied principal/action/resource/context produces a decision |
+| Live object read-back | The object exists with the expected encryption and tags |
+| Cleanup read-back | Named resources are absent after deletion |
+
+The observed simulator results were:
+
+| Scenario | Result |
+|---|---|
+| Matching principal/object Department tags | `allowed` |
+| Mismatched Department tags | `implicitDeny` |
+| `PutObject` without MFA | `implicitDeny` |
+| `PutObject` with MFA age of 1,800 seconds | `allowed` |
+| Role `GetObject` inside the time window | `allowed` |
+| Log write from an allowed test range | `allowed` |
+| Log write from a non-approved range | `explicitDeny` |
+
+The combined principal simulation and isolated custom-policy simulation were both necessary. The combined result shows what an identity experiences with all attached policies; the isolated result shows whether one policy expresses the intended rule without another Allow masking it.
+
+### 7. Clean up in reverse dependency order
+
+Cleanup removed:
+
+1. Object data
+2. Policy attachments
+3. IAM user and role
+4. Customer-managed policies
+5. Bucket policy
+6. S3 bucket
+7. CloudWatch log group
+8. Local lab directory and variables file
+
+Final verification returned:
+
+```text
+S3 bucket deletion verified.
+CloudWatch log-group deletion verified.
+Full cleanup verification passed.
+```
+
+## Design corrections made during execution
+
+- Split `GetObject` from `PutObject` because the encryption request condition applies to uploads.
+- Removed the unsupported `s3:x-amz-meta-project` condition after Access Analyzer rejected it.
+- Treated the trust-policy `MISSING_RESOURCE` validation result as a validator limitation for IAM role trust-policy grammar; successful role creation was the decisive AWS validation.
+- Recovered from terminal-session loss by reloading the local manifest and rebuilding derived identifiers.
+- Passed the actual JSON string to `simulate-custom-policy`; `--policy-input-list` does not interpret a `file://` path as the document content.
+
+## Verification summary
+
+- S3 public-access block: all four settings enabled
+- S3 default encryption: AES256
+- Bucket public-status evaluation: `IsPublic=false`
 - Test object: 45 bytes, AES256, expected tags
 - CloudWatch retention: 7 days
-- Test user: four attached policies, no access keys
+- Test user: four policy attachments, no access keys
 - Test role: business-hours policy, one-hour maximum session
 - Access Analyzer: zero findings for the corrected identity/session/bucket policy set
-- Cleanup: IAM principals/policies, object, bucket, log group, and local files absent
-
-## Failure lessons
-
-### Valid JSON is not a valid policy
-
-Access Analyzer caught that an upload encryption condition had been combined with `GetObject`. Upload request conditions belong on `PutObject`; reads need a separate statement.
-
-### Do not invent service condition keys
-
-The attempted `s3:x-amz-meta-project` condition was rejected as an invalid S3 condition key and was removed. Verify service-specific condition keys against AWS documentation rather than assuming every HTTP header becomes an IAM key.
-
-### Combined tests can hide the policy you intended to test
-
-The user simulation returned `allowed` for a matching read, but another attached policy could also allow reads. Isolated custom-policy simulation proved the ABAC behavior itself.
-
-### Shell state is part of reliability
-
-Closing the terminal removes exported variables. Reload the saved manifest and rebuild derived ARNs before continuing. Never trust a trailing success message after an earlier command failed.
-
-### Redaction belongs in shared output, not executable commands
-
-Run the real local resource name, then mask identifiers when sharing output. Replacing a key or variable with `***` changes the command and can create a false 404 or parse error.
+- Cleanup: all temporary AWS resources and local lab files absent
 
 ## Cost and safety
 
-- No compute, database, NAT gateway, or public IP was used.
-- S3 and CloudWatch resources can still incur small charges if left behind.
-- The test user had no access keys.
-- The source IP ranges were documentation-only TEST-NET ranges and were used for simulation, not live access.
-- Cleanup and absence verification are part of the lab's definition of done.
+- No EC2, database, NAT gateway, public IPv4, or other compute resource was used.
+- S3 and CloudWatch can still incur small charges if left behind.
+- The temporary user had no access keys or password.
+- TEST-NET ranges were used only as policy-simulation inputs, not as live access assumptions.
+- Cleanup is part of the definition of done.
 
-## What this lab teaches
+## Repository contents
 
-- IAM is request evaluation, not a list of names.
-- Identity, trust, resource, and session policies answer different questions.
-- Conditions turn broad permissions into context-aware controls.
-- Least privilege depends on correct action/resource scope, not only narrow action names.
-- Explicit Deny is a safety boundary; implicit deny is the default absence of permission.
-- A strong lab proves state, behavior, failure paths, and cleanup.
-- AI can generate syntax, but the engineer must choose the model, dependencies, safety boundaries, tests, and interpretation.
+```text
+12-fine-grained-iam-access-control/
+├── README.md
+└── policies/
+    ├── bucket-policy.json
+    ├── business-hours-policy.json
+    ├── ip-restriction-policy.json
+    ├── mfa-required-policy.json
+    ├── session-scope-down-policy.json
+    ├── tag-based-policy.json
+    └── trust-policy.json
+```
 
-## Interview questions
-
-1. What is the difference between an identity policy, a trust policy, and a resource policy?
-2. Why does `s3:ListBucket` use the bucket ARN while `s3:GetObject` uses an object ARN?
-3. How do implicit and explicit denies differ?
-4. How did you isolate the ABAC policy from the user's other policies?
-5. Why did the MFA test require both presence and age?
-6. Why can valid JSON still be semantically wrong?
-7. What dependency required the role to exist before applying the bucket policy?
-8. What evidence proves cleanup rather than merely suggesting it?
-
-## 60-second interview answer
-
-> I built a temporary fine-grained IAM environment around a private encrypted S3 bucket and a CloudWatch log group. I created a tagged test user, a role with conditional trust, four identity policies for time, IP, tags, and MFA, plus an S3 resource policy and an STS scope-down document. I verified the state by reading IAM, S3, and CloudWatch back, then tested both isolated policies and the combined identity with explicit request context. Matching tags and recent MFA were allowed, mismatched tags and missing MFA produced implicit denies, and an unapproved source IP produced an explicit deny. Access Analyzer also exposed and helped correct an invalid S3 condition. Finally, I removed the resources and verified their absence.
-
-## Cleanup
-
-Use the same project-specific cleanup process that created the lab. Delete data before the bucket, detach policies before deleting principals, delete policies after detachment, and read the AWS state back until every named resource is absent.
-
-## Portfolio boundary
-
-This README is a sanitized learning artifact. Replace placeholders locally when experimenting, but never commit account IDs, real ARNs, credentials, private keys, personal IPs, or raw course material.
+The policy files are deployable examples with placeholders. The README explains the design, implementation, and verification path as a self-contained engineering record.
