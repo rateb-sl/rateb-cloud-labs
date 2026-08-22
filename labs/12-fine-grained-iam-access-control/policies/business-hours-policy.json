@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ListBucketDuringBusinessHours",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::<bucket-name>",
+      "Condition": {
+        "DateGreaterThanEquals": {
+          "aws:CurrentTime": "<utc-day>T09:00:00Z"
+        },
+        "DateLessThan": {
+          "aws:CurrentTime": "<utc-day>T17:00:00Z"
+        }
+      }
+    },
+    {
+      "Sid": "ObjectAccessDuringBusinessHours",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::<bucket-name>/*",
+      "Condition": {
+        "DateGreaterThanEquals": {
+          "aws:CurrentTime": "<utc-day>T09:00:00Z"
+        },
+        "DateLessThan": {
+          "aws:CurrentTime": "<utc-day>T17:00:00Z"
+        }
+      }
+    }
+  ]
+}

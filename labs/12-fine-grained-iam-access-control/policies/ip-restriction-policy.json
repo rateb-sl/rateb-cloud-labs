@@ -1,0 +1,41 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowLogsFromDocumentedTestRanges",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "logs:DescribeLogGroups",
+        "logs:DescribeLogStreams"
+      ],
+      "Resource": "arn:aws:logs:<region>:<account-id>:log-group:<log-group-name>:*",
+      "Condition": {
+        "IpAddress": {
+          "aws:SourceIp": [
+            "203.0.113.0/24",
+            "198.51.100.0/24"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "DenyNonTestRangesOutsideAWSServiceCalls",
+      "Effect": "Deny",
+      "Action": "*",
+      "Resource": "*",
+      "Condition": {
+        "Bool": {
+          "aws:ViaAWSService": "false"
+        },
+        "NotIpAddress": {
+          "aws:SourceIp": [
+            "203.0.113.0/24",
+            "198.51.100.0/24"
+          ]
+        }
+      }
+    }
+  ]
+}
