@@ -1,68 +1,95 @@
-# Verified Linux backup workflow
+# Verified Linux backup workflow: archive, prove, restore
 
 ## Goal
 
-Create a compressed archive of a directory, prove what went into it, record an integrity checksum, and test that it can be extracted. The goal is not to call a `.tar.gz` file a backup and move on. It is to leave enough evidence that I can trust the archive later.
+Create a compressed archive, prove what it contains, record an integrity checksum, and test that it can be restored. A `.tar.gz` file is not a trustworthy backup until its contents and recovery path have been checked.
 
 ## Environment
 
 - Linux shell
 - `tar`, `sha256sum`, `find`, and standard POSIX utilities
-- A disposable source directory and a separate backup destination
+- Disposable source directory
+- Separate backup destination
 
-## What I built
+## Operating model
 
-[`scripts/backup-archive.sh`](scripts/backup-archive.sh) creates a timestamped `.tar.gz` archive from a source directory. It then:
+```text
+source directory
+  → archive
+  → archive inventory
+  → checksum record
+  → isolated restore test
+  → retained evidence
+```
 
-1. lists the archive contents without extracting it;
-2. calculates a SHA-256 checksum;
-3. writes a small CSV audit log; and
-4. prints the paths needed for verification.
+Each stage answers a different question:
 
-The script takes absolute or relative paths, but I prefer absolute paths in operational runbooks so the target is obvious.
+| Question | Evidence |
+|---|---|
+| Did an archive get created? | Archive path and size |
+| What is inside it? | `tar -tzf` listing |
+| Did the bytes change? | SHA-256 verification |
+| Can it be recovered? | Extraction into an empty directory |
+
+A checksum proves byte identity. It does not prove that the source was complete or that the backup is stored off-host.
+
+## Implementation
+
+### 1. Create the archive
+
+[`scripts/backup-archive.sh`](scripts/backup-archive.sh) accepts a source and destination, rejects unsafe layouts such as a destination inside the source tree, creates a timestamped archive, and records the resulting paths.
 
 ```bash
 chmod u+x scripts/backup-archive.sh
 ./scripts/backup-archive.sh /srv/example-app /var/backups/example-app
 ```
 
-## Verification
+The important design choice is that the script derives its inputs from the filesystem rather than relying on a manually typed archive name.
+
+### 2. Inspect the archive
 
 ```bash
-# Inspect the archived paths without changing the filesystem.
 tar -tzf /var/backups/example-app/example-app-YYYYMMDDTHHMMSSZ.tar.gz
-
-# Recalculate and compare against the recorded checksum.
-sha256sum -c /var/backups/example-app/example-app-YYYYMMDDTHHMMSSZ.tar.gz.sha256
-
-# Test a restore into an empty disposable directory.
-mkdir -p /tmp/restore-test
-tar -xzf /var/backups/example-app/example-app-YYYYMMDDTHHMMSSZ.tar.gz -C /tmp/restore-test
-find /tmp/restore-test -maxdepth 2 -print
 ```
 
-A matching checksum proves that the archive bytes match the checksum file. The restore test proves that the archive is readable. Neither check replaces a real retention, off-host-copy, or recovery policy.
+This is a read-only check. It proves the archive can be read and shows the paths captured, but it does not modify or restore the filesystem.
 
-## Troubleshooting notes
+### 3. Verify integrity
 
-- If `tar` exits with an error, stop before moving or deleting anything. Read the error and inspect the source path.
-- If the backup destination is inside the source tree, the archive can include itself. The script blocks that layout.
-- `tee` overwrites by default. Use `tee -a` when appending an operational log.
-- `df -h` shows free capacity by mounted filesystem; `du -sh <path>` shows the size of a particular directory tree.
+```bash
+sha256sum -c /var/backups/example-app/example-app-YYYYMMDDTHHMMSSZ.tar.gz.sha256
+```
 
-## What I learned
+A matching checksum proves that the archive bytes match the recorded checksum file. It does not prove the original source was correct.
 
-The useful pattern is:
+### 4. Test recovery
+
+```bash
+mkdir -p ./restore-test
+tar -xzf /var/backups/example-app/example-app-YYYYMMDDTHHMMSSZ.tar.gz -C ./restore-test
+find ./restore-test -maxdepth 2 -print
+```
+
+Restoring into an empty disposable directory tests readability without overwriting the original source.
+
+## Failure boundaries
+
+- If `tar` fails, stop before moving or deleting anything.
+- A backup destination inside the source tree can cause the archive to include itself.
+- `df -h` reports filesystem capacity; `du -sh <path>` reports directory size.
+- `tee` overwrites by default; use `tee -a` when appending an audit log.
+
+## Verification
+
+The complete proof is:
 
 ```text
-inspect → archive → list contents → checksum → restore test → retain evidence
+inspect → archive → list → checksum → isolated restore → retain evidence
 ```
 
-A file that merely exists is not enough. I need to know what it contains, whether it can be read, and where I would restore it.
+## Cleanup
 
-## Security and cleanup
-
-- Do not archive credentials, private keys, or files you are not authorized to copy.
+- Do not archive credentials, private keys, or unauthorized data.
 - Review ownership and permissions on the backup destination.
-- Remove `/tmp/restore-test` after a successful disposable test.
-- For production, add encryption, retention, monitoring, and an off-host copy. This lab intentionally stays focused on the first safe workflow.
+- Remove `./restore-test` after the test.
+- Production backups need encryption, retention, off-host copies, monitoring, and a tested recovery objective.

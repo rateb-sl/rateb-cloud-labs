@@ -1,36 +1,57 @@
-# Linux service operations: inspect, start, enable, verify
+# Linux service operations: package, start, enable, verify
 
 ## Goal
 
-Practice the operational difference between installing a package, starting its service now, and enabling it for the next boot. I used Apache on Amazon Linux as the example because it makes the difference visible quickly.
+Demonstrate the difference between installing a package, starting its service now, and enabling it for the next boot. Apache on Amazon Linux makes the three states visible.
 
 ## Environment
 
 - Amazon Linux 2023 or another `systemd`-based Linux host
 - `systemctl`
-- `curl` for a local HTTP check
+- `curl`
 
-On Amazon Linux, Apache is called `httpd`. On Ubuntu, the common service name is `apache2`. I check `/etc/os-release` before reusing package or service commands from another distribution.
+Amazon Linux uses the service name `httpd`; Ubuntu commonly uses `apache2`. Check `/etc/os-release` before reusing commands across distributions.
 
-## What I built
+## Operating model
 
-[`scripts/check-service.sh`](scripts/check-service.sh) is a small read-only health-check helper. It checks whether a named systemd service is active and enabled. If `curl` is available and the target is an HTTP service, it can also request a local endpoint.
+```text
+package installed
+  ≠ service running now
+  ≠ service enabled for the next boot
+  ≠ service reachable from the network
+```
+
+These are separate state layers. A reliable check tests each layer rather than treating one success message as proof of the whole path.
+
+## Implementation
+
+### 1. Install the package
+
+```bash
+sudo dnf install -y httpd
+```
+
+This changes package state only. It does not guarantee the service is running or listening.
+
+### 2. Start and enable the service
+
+```bash
+sudo systemctl start httpd
+sudo systemctl enable httpd
+```
+
+`start` changes runtime state. `enable` changes boot-time configuration. One does not imply the other.
+
+### 3. Use the repository health check
+
+[`scripts/check-service.sh`](scripts/check-service.sh) checks whether the service is active and enabled and can test a local HTTP endpoint.
 
 ```bash
 chmod u+x scripts/check-service.sh
 ./scripts/check-service.sh httpd http://localhost
 ```
 
-For an Amazon Linux test instance, the setup sequence is:
-
-```bash
-sudo dnf install -y httpd
-sudo systemctl start httpd
-sudo systemctl enable httpd
-./scripts/check-service.sh httpd http://localhost
-```
-
-## Verification
+### 4. Verify each layer directly
 
 ```bash
 systemctl is-active httpd
@@ -38,15 +59,15 @@ systemctl is-enabled httpd
 curl -I http://localhost
 ```
 
-The expected state is:
+Expected evidence:
 
-- `active`: Apache is running now.
-- `enabled`: systemd is configured to start it after a reboot.
-- a local HTTP response: the process is serving a request on the host.
+- `active`: the process is running now.
+- `enabled`: systemd will start it after reboot.
+- HTTP response: the local service answered a request.
 
-These checks do not prove that the site is reachable from the internet. For EC2, that also depends on the instance state, route, network ACLs when relevant, and the security group allowing the intended inbound TCP port.
+A local response does not prove internet reachability. An EC2 path also needs a public address, route, security group, and healthy host.
 
-## Troubleshooting notes
+## Failure boundaries
 
 ```bash
 sudo systemctl status httpd --no-pager
@@ -54,26 +75,18 @@ sudo journalctl -u httpd -n 80 --no-pager
 sudo ss -ltnp
 ```
 
-- `start` changes runtime state. `enable` changes boot-time configuration. One does not imply the other.
-- A package can be installed while its service is stopped.
-- Do not use `kill -9` as a first response to a service problem. Inspect the unit status and logs first.
-- Avoid `chmod 777` when a service cannot read a file. Check the exact owner, group, mode bits, and parent-directory permissions.
+- Package installed but service stopped: runtime layer.
+- Service active but no listener: process/configuration layer.
+- Local response works but external request fails: network path or security-group layer.
+- Do not use `kill -9` or `chmod 777` as the first response; inspect status, logs, ownership, and permissions.
 
-## What I learned
+## Cleanup
 
-```text
-package installed ≠ service running ≠ service enabled
-```
-
-This looks small, but it matters during provisioning and incident work. A web server that works until the next reboot is not a finished setup.
-
-## Security and cleanup
-
-- Keep inbound network access narrow. Do not open port 80 to the world unless that is the intended test.
-- Stop and disable the service when the disposable lab is finished:
+- Keep inbound access limited to the intended test source.
+- Stop and disable the service when finished:
 
 ```bash
 sudo systemctl disable --now httpd
 ```
 
-- Terminate temporary EC2 instances after the lab to avoid cost.
+- Terminate disposable EC2 instances after the lab.

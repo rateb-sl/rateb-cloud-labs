@@ -2,37 +2,40 @@
 
 ## Goal
 
-Understand how AWS IAM permissions actually work by building a small three-user experiment and watching each user hit a different permission wall.
+Build a small three-user IAM experiment that makes permission boundaries observable. Each user receives a different group policy and reaches a different authorization wall.
 
-The core lesson: an IAM user can do only what the policies attached to their user groups allow, nothing more. Permissions are inherited through group membership. A user who belongs to no group has no permissions, even with a valid password.
+The design principle is simple: authentication identifies a principal; policies determine what that principal may do.
 
 ## Environment
 
-- AWS account (a training sandbox or an account you control)
+- AWS account or training sandbox
 - AWS Management Console
+- Three temporary IAM users and groups
+- No application resources required beyond the permission tests
 
-## The three-user experiment
+## Authorization model
 
-1. Create three IAM users: `s3-user`, `ec2-user`, and `admin-user`.
-2. Create three groups: `S3-ReadOnly`, `EC2-ReadOnly`, `Admin`.
-3. Attach a policy to each group (examples in [`policies/`](policies/)):
-   - `S3-ReadOnly` gets S3 read access.
-   - `EC2-ReadOnly` gets EC2 describe access.
-   - `Admin` gets full access.
-4. Add each user to exactly one group.
-5. Sign in at the account alias URL (`https://<account-alias>.signin.aws.amazon.com/console`) as each user in turn.
+```text
+User → Group membership → Group policy → Action/resource decision
+```
 
-Expected results:
+A user with a valid password but no applicable policy still has no useful permissions. Explicit Deny overrides Allow; anything without a matching Allow is an implicit deny.
 
-| User | What they see | What they cannot do |
+## Implementation
+
+### 1. Define the permission matrix
+
+| User | Group | Intended access |
 |---|---|---|
-| `s3-user` | S3 buckets | Open EC2, change anything |
-| `ec2-user` | EC2 instances (read-only) | Open S3, change anything |
-| `admin-user` | Everything | Nothing, within the account |
+| `s3-user` | `S3-ReadOnly` | Read/list S3 |
+| `ec2-user` | `EC2-ReadOnly` | Describe EC2 |
+| `admin-user` | `Admin` | Administrative test access |
 
-## How a policy statement works
+The matrix is the desired state. It prevents permissions from being assigned by intuition while creating the experiment.
 
-Every IAM policy is a list of statements. Each statement has three parts:
+### 2. Create groups and attach policies
+
+The policy examples are under [`policies/`](policies/). A statement has three primary decisions:
 
 ```json
 {
@@ -42,32 +45,39 @@ Every IAM policy is a list of statements. Each statement has three parts:
 }
 ```
 
-- `Effect`: `Allow` or `Deny`. An explicit Deny always wins over an Allow.
-- `Action`: the API actions the statement covers.
-- `Resource`: what the actions can be applied to.
+- `Effect` determines allow or deny.
+- `Action` identifies the API operations.
+- `Resource` identifies where they apply.
 
-Two rules make the whole system predictable:
+In a production design, scope resources more narrowly than `*` wherever the service and use case allow it.
 
-- **Implicit deny**: anything not explicitly allowed is denied by default. A user with no policies can do nothing.
-- **Least privilege**: grant the minimum actions needed for the job. Read-only groups are the safest starting point.
+### 3. Create users and assign exactly one group
 
-## Reading a policy correctly
+Add each temporary user to the intended group only. Group inheritance keeps permission ownership manageable; direct user policies make review and change control harder as teams grow.
 
-When you look at a user's permissions, ask: what groups does this user belong to, and what policies do those groups carry? A policy attached directly to the user works the same way, but in practice groups are how teams stay manageable.
+### 4. Verify behavior, not just membership
 
-## Verification
+Sign in as each user and test the intended and denied surfaces:
 
-- Sign in as `s3-user` and confirm S3 works and EC2 shows no access.
-- Sign in as `ec2-user` and confirm the opposite.
-- Confirm `admin-user` sees the full console.
-- Check the account password policy if you want to enforce minimum length and rotation.
+- `s3-user`: S3 works; EC2 access is denied.
+- `ec2-user`: EC2 read access works; S3 access is denied.
+- `admin-user`: the administrative test works.
+
+Membership proves the relationship exists. The actual console/API result proves authorization behavior.
+
+## Failure boundaries
+
+If a result is unexpected, inspect in this order:
+
+1. Correct account and sign-in identity
+2. Group membership
+3. Attached policy and policy version
+4. Action/resource scope
+5. Explicit Deny or permissions boundary
+6. Service/Region behavior
+
+Do not solve every access problem by adding broader permissions.
 
 ## Cleanup
 
-Delete the three users and groups when the experiment is done. The users exist only in IAM; there are no other resources created by this lab.
-
-## What this lab teaches
-
-- Identity and permission are separate. Knowing who someone is tells you nothing until you read the attached policies.
-- Group inheritance is the normal pattern; direct user policies are the exception.
-- The most common support answer is not "give the user more access" but "find the group that owns the job and check its policy."
+Delete the three temporary users and groups. Verify the names no longer appear in IAM. IAM users do not own the resources they accessed; deleting a user does not delete unrelated AWS resources.

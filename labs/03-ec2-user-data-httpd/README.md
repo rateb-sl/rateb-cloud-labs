@@ -1,20 +1,34 @@
-# EC2 user data: provision Apache on Amazon Linux 2023
+# EC2 user data: first-boot Apache provisioning
 
 ## Goal
 
-Use EC2 user data to prepare an Amazon Linux 2023 instance at first boot, then troubleshoot the result through `cloud-init` evidence instead of changing commands at random.
+Use EC2 user data to configure an Amazon Linux 2023 instance at first boot, then troubleshoot the result through cloud-init and service evidence.
 
 ## Environment
 
-- Amazon EC2 instance running Amazon Linux 2023
-- An EC2 security group that permits only the required inbound HTTP traffic for the test
-- EC2 user data configured at launch time
+- EC2 instance running Amazon Linux 2023
+- Security group permitting only the intended HTTP test traffic
+- User data configured at launch
 
-## What I built
+## Architecture
 
-[`scripts/user-data-httpd.sh`](scripts/user-data-httpd.sh) installs Apache (`httpd`), writes a simple local landing page, starts the service, and enables it for future boots.
+```text
+EC2 launch
+  → cloud-init executes user data as root
+  → dnf installs httpd
+  → page is written to the document root
+  → systemd starts and enables httpd
+  → local service check
+  → external HTTP path check
+```
 
-Paste the file contents into the EC2 **User data** field before launching a test instance.
+User data solves first-boot configuration. It is not the general tool for changing an existing fleet; Systems Manager is a better operational surface for that.
+
+## Implementation
+
+### 1. Provision the first boot
+
+[`scripts/user-data-httpd.sh`](scripts/user-data-httpd.sh) contains the reference script:
 
 ```bash
 #!/bin/bash
@@ -25,11 +39,9 @@ printf '%s\n' 'Provisioned by EC2 user data' > /var/www/html/index.html
 systemctl enable --now httpd
 ```
 
-The script has a shebang, avoids interactive prompts, and does not use `sudo` because EC2 user-data scripts run as root by default.
+The shebang selects Bash, `set -euo pipefail` prevents silent continuation, and no `sudo` is needed because user data runs as root.
 
-## Verification
-
-After the instance has finished its status checks and user-data tasks:
+### 2. Verify the host locally
 
 ```bash
 sudo systemctl status httpd --no-pager
@@ -37,30 +49,27 @@ curl -I http://localhost
 sudo tail -n 80 /var/log/cloud-init-output.log
 ```
 
-Then test HTTP reachability from the intended client only after checking the relevant security-group rule.
+This proves the package, service, local listener, and provisioning log separately. It does not prove that an external client can reach the instance.
 
-```text
-EC2 launch
-  ↓
-cloud-init runs user data
-  ↓
-dnf installs httpd
-  ↓
-systemd starts and enables httpd
-  ↓
-local curl check
-  ↓
-security-group and browser test
+### 3. Verify the public path
+
+Only after confirming the security-group rule, test from the intended client:
+
+```bash
+curl -I --max-time 15 http://<public-ip-or-dns>
 ```
 
-## Troubleshooting notes
+The full path requires a running instance, public addressing, routing, security-group permission, a listening service, and the correct document root.
 
-When the web page is not reachable, I check in this order:
+## Failure boundaries
 
-1. Is the instance running and are its status checks healthy?
-2. Does the security group permit the intended inbound TCP port 80 source?
-3. Is `httpd` installed, active, and listening locally?
-4. What is the first meaningful error in `/var/log/cloud-init-output.log`?
+Check in dependency order:
+
+1. Instance status checks
+2. Security-group TCP/80 rule
+3. `httpd` installation and service state
+4. Listener on the host
+5. First meaningful cloud-init error
 
 ```bash
 cat /etc/os-release
@@ -70,24 +79,10 @@ sudo less /var/log/cloud-init-output.log
 sudo less /var/log/cloud-init.log
 ```
 
-One failure I learned to recognize is an incorrect package name. `dnf install HTTP` does not install Apache on Amazon Linux. The correct package is `httpd`. If installation fails, `systemctl` cannot start a service that does not exist.
+`dnf install HTTP` is not equivalent to installing Apache on Amazon Linux; the package is `httpd`. Changing the user-data field after launch does not automatically rerun it.
 
-Changing the displayed user-data text after launch does not make it run again. Test a corrected script on a newly launched disposable instance, or use a deliberate cloud-init re-execution process only when you understand the consequences.
+## Cleanup
 
-## What I learned
-
-- User data is good for predictable first-boot configuration.
-- User data is not the first choice for changing an existing fleet; Systems Manager Run Command is a better fit for that.
-- Successful package installation is separate from starting a service, enabling it at boot, and allowing network reachability.
-- Logs are evidence. They are faster and safer than guessing.
-
-## Security and cleanup
-
-- Do not put credentials, private keys, API tokens, or database passwords in user data.
-- Restrict the HTTP security-group source to the smallest range needed for the test.
-- User-data output and files may be root-owned. Adjust ownership only when a non-root user actually needs access.
+- Never put credentials, private keys, API tokens, or database passwords in user data.
+- Restrict the HTTP source range to the smallest range needed.
 - Terminate the test instance and remove temporary security-group rules when finished.
-
-## Reference
-
-- [AWS EC2 user data for Linux instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/user-data.html)

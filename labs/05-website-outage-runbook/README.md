@@ -1,103 +1,85 @@
-# Website outage runbook
+# Website outage runbook: isolate the broken layer
 
 ## Goal
 
-A structured way to investigate a customer report that a website is unavailable. The method is outside-in: reproduce the failure, identify which layer stopped the request, fix the smallest thing, and verify from outside again.
+Investigate a customer report that a website is unavailable by reproducing the failure, isolating the broken layer, making the smallest safe change, and verifying from outside again.
 
-This runbook is a guided training scenario (ticket: customer website unavailable since morning, instance shows Running, browser times out). It is written as a repeatable procedure, not as a record of a production incident.
+This is a repeatable training runbook, not a claim of a production incident.
 
-## The mental model
+## Request path
 
 ```text
-Browser -> Internet Gateway -> Route Table -> NACL -> Security Group -> EC2 (Apache)
+Client → Internet Gateway → Route Table → NACL → Security Group → EC2 → Apache
 ```
 
-"Instance is Running" only proves the machine exists. The fault lives somewhere on this path. Isolate which hop breaks by testing from the outside in.
+“Instance is Running” proves only that the machine exists. Every hop in the request path must be tested separately.
 
-## Investigation steps
+## Implementation
 
-### Step 1. Reproduce from your machine
+### 1. Reproduce from outside
 
 ```bash
-curl -v --max-time 15 http://<PUBLIC_IP>
+curl -v --max-time 15 http://<public-ip>
 ```
 
-| Result | Meaning | Next step |
+| Result | Meaning | Next layer |
 |---|---|---|
-| `(28) Operation timed out` | Packets dropped, likely a routing or policy layer | Step 2 |
-| `(7) Connection refused` | Packets arrive, nothing listening on port 80 | Step 3 |
-| `HTTP 200` | Site works from the internet; problem is DNS or the load balancer | Stop |
+| Timeout | Packets are being dropped | Route, NACL, or security group |
+| Connection refused | Path is open but no service accepts the port | Apache/listener |
+| HTTP 200 | Web path works | DNS or load balancer scope |
 
-A timeout and a connection refused are different evidence. A timeout means something is silently dropping the traffic. A refusal means the network path is open and the service is closed.
+Timeout and refusal are different evidence. Do not troubleshoot them as the same failure.
 
-### Step 2. Can you reach the instance at all?
+### 2. Separate port reachability
 
 ```bash
-ssh -i <your-key.pem> ec2-user@<PUBLIC_IP>
+ssh -i <your-key.pem> ec2-user@<public-ip>
 ```
 
-- SSH works: the network path is open; the break is specific to port 80. Check the security group, then Apache.
-- SSH also times out: the instance is isolated. Check the route table, Internet Gateway, and network ACL.
+If SSH works but HTTP times out, the instance path is open and the investigation should focus on TCP/80. If SSH also fails, inspect route, gateway, address, and NACL state.
 
-Security group check (AWS Console):
+For a public web server, the security group needs HTTP/TCP/80 from the intended source. SSH should remain restricted to the operator's address rather than opened broadly.
 
-- EC2 -> Instances -> your instance -> Security tab.
-- Required inbound rules:
-
-```text
-Type: HTTP (TCP 80)   Source: 0.0.0.0/0   missing = the bug
-Type: SSH (TCP 22)    Source: your-ip/32
-```
-
-Fix: add the HTTP rule and save.
-
-Network ACL check (only if SSH fails too):
-
-- VPC -> Network ACLs. Default NACL allows all; a custom one may block.
-- Inbound TCP 80 from `0.0.0.0/0` must be ALLOW.
-- Outbound TCP 1024-65535 (ephemeral ports) must be ALLOW so replies can leave.
-
-### Step 3. Is Apache alive?
+### 3. Check the host service
 
 ```bash
 sudo systemctl status httpd
+sudo ss -tlnp
 ```
 
-- Not running:
+If the service is stopped:
 
 ```bash
 sudo systemctl start httpd
-sudo systemctl enable httpd   # survives reboot
+sudo systemctl enable httpd
 ```
 
-- Running but the site is still down, check the listener:
+A local listener proves host service state, not external reachability.
+
+### 4. Check routing only when the path is isolated
+
+Confirm:
+
+- `0.0.0.0/0` targets an Internet Gateway for a public subnet.
+- The gateway is attached to the VPC.
+- The instance has a public IPv4 or Elastic IP.
+- A custom NACL permits inbound HTTP and outbound ephemeral response ports.
+
+### 5. Verify externally after the fix
 
 ```bash
-sudo ss -tlnp | grep :80     # expect httpd on 0.0.0.0:80
+curl -v --max-time 15 http://<public-ip>
 ```
 
-- Nothing listening: install it. `sudo dnf install -y httpd` on Amazon Linux 2023, `sudo yum install -y httpd` on Amazon Linux 2.
+The incident is not resolved until the external request succeeds and returns the expected page.
 
-### Step 4. Routing (only if SSH is dead too)
+## Evidence boundaries
 
-- Route table: does the main table have `0.0.0.0/0` pointing to an Internet Gateway, not a NAT?
-- Internet Gateway: attached to the VPC?
-- Public IP: the instance must have a public IPv4 or Elastic IP. Without one, nothing outside can reach it.
+- `systemctl` proves service state on the host.
+- SSH proves the path to port 22, not port 80.
+- A security-group rule does not prove Apache is listening.
+- Only a successful external request proves the website path works end to end.
 
-### Step 5. Verify from outside, do not skip
+## Cleanup
 
-```bash
-curl -v --max-time 15 http://<PUBLIC_IP>
-```
-
-Expected: `HTTP/1.1 200 OK` plus the site HTML. Then retry in a browser.
-
-## Likely root cause for this ticket
-
-Instance Running, SSH reachable, but the security group has no inbound rule for TCP 80. The security group drops the packets silently, which is why the browser times out instead of getting a refusal.
-
-## Evidence rules
-
-- `systemctl status httpd` proves service state on the host, not internet reachability.
-- A successful SSH proves the path to port 22, not port 80.
-- The only proof that the website is restored is a successful external request (curl or browser) after the fix.
+Remove temporary security-group rules and terminate the disposable instance after the runbook. Confirm the intended resources and rules are absent.

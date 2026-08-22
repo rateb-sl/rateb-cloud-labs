@@ -1,40 +1,36 @@
-# Walkthrough: Amazon Inspector vulnerability assessment
+# Amazon Inspector: assess, remediate, verify
 
-Guided walkthrough based on an AWS Training sandbox lab. Expected evidence is labeled as expected, not observed. Run this in a training sandbox or disposable account.
+## Scope
 
-## Goal
+Use this walkthrough to activate vulnerability assessment, interpret a package finding, apply the smallest remediation, and verify the same finding state again.
 
-Close the security loop behind Amazon Inspector: activate a scan, see what is covered, read a package vulnerability finding, make the smallest dependency change, redeploy, and confirm the finding is no longer active.
+## Control model
 
-## Steps
+```text
+resource inventory
+  → Inspector assessment
+  → finding triage
+  → targeted remediation
+  → redeploy or rescan
+  → finding-state verification
+```
 
-1. Open the Inspector service and activate the scans the account supports (EC2 and Lambda standard scanning).
-2. Confirm coverage: which resources are enabled for scanning and in which Region.
-3. Wait for an initial scan, then open Findings.
-4. Pick one package vulnerability finding and read it like a ticket:
-   - Which package and version are affected?
-   - Which CVE is referenced?
-   - What is the recommended remediation (usually a dependency version bump)?
-5. Apply the smallest fix the finding recommends in the application code or dependency manifest.
-6. Redeploy the affected resource.
-7. Re-open the finding and confirm it moves out of the active state after the next scan.
+A finding is a signal requiring triage. It is not proof of compromise, and coverage is not the same as security.
 
-## Expected evidence (verify against your own run)
+## Implementation and verification
 
-- Inspector shows enabled scans and a coverage list for the account and Region.
-- A finding lists the affected package, the CVE, and a remediation path.
-- After the fix and redeploy, the finding is no longer listed as active.
+1. Confirm the account, Region, target resource, and Inspector coverage state.
+2. Read the finding's resource, package, CVE, severity, and remediation guidance.
+3. Apply only the remediation that addresses the identified package or configuration.
+4. Redeploy or rescan as required by the sandbox.
+5. Read the same finding back and confirm its state and scan timestamp.
 
 ## Evidence boundaries
 
-- A clean Inspector scan covers the resources in scope at scan time. It is not a guarantee about code you wrote or resources not in scope.
-- A finding that disappears proves the condition was remediated; it does not prove the application is free of other issues.
+- Coverage proves the resource is being assessed, not that it is secure.
+- A finding proves an assessment result, not exploitation.
+- A closed finding proves the specific finding was re-evaluated, not that all risk is gone.
 
 ## Cleanup
 
-Disable or deactivate Inspector scans if the sandbox does not do it, so the account does not keep scanning paid resources.
-
-## What this teaches
-
-- Vulnerability management is a loop: scan, interpret, fix, redeploy, re-scan.
-- The interpretation step is the actual skill. A CVE number means nothing until you know whether the affected package is in your deployed artifact and how it is used.
+Deactivate or remove only the disposable resources created for the walkthrough. Do not change shared Inspector configuration without confirming ownership.

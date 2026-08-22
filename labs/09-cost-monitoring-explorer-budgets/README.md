@@ -1,82 +1,96 @@
-# Cost monitoring lab: see the spend, then alert before it hurts
+# Cost monitoring: see spend, then alert before it hurts
 
 ## Goal
 
-Prevent unexpected AWS bill spikes with two habits: see where the money goes (Cost Explorer) and get warned before a threshold is crossed (Budgets + SNS). This lab builds a $100 monthly cost budget with graduated alerts at 50%, 75%, and 90% of actual spend, plus one forecast alert at 100% of projected spend.
+Build a cost-awareness path that combines Cost Explorer for observation with Budgets and SNS for threshold alerts.
 
-The transferable pattern is the dependency chain: budget -> thresholds -> notification channel. Notifications cannot be attached before the budget exists, so the order below is not cosmetic.
+The implementation creates a monthly budget with graduated actual-spend thresholds at 50%, 75%, and 90%, plus a 100% forecast threshold.
 
 ## Environment
 
-- An AWS account with billing access. Cost Explorer and Budgets are billing services: free LocalStack and AWS Academy Learner Lab do not expose them, so this lab needs a real account you control.
-- AWS CLI installed and authenticated.
-- An IAM role or user carrying the actions in [`iam-policy.json`](iam-policy.json).
+- Real AWS account with billing access
+- AWS CLI authenticated
+- Cost Explorer and Budgets availability
+- SNS email endpoint for notification confirmation
+- The included IAM policy for the required service actions
 
-## What this lab builds
+LocalStack and AWS Academy Learner Lab do not provide the billing APIs needed for this lab, so the environment decision is part of the design.
 
-| Task | What | Command family |
-|---|---|---|
-| 1 | Cost Explorer access | `aws ce get-cost-and-usage` |
-| 2 | SNS topic + email subscription | `aws sns create-topic` / `subscribe` |
-| 3 | Monthly cost budget ($100) | `aws budgets create-budget` |
-| 4 | Graduated alerts: ACTUAL 50/75/90% | `aws budgets create-notification` |
-| 5 | Forecast alert: FORECASTED 100% | `aws budgets create-notification` |
+## Dependency model
 
-The scripts in [`scripts/`](scripts/) run the whole chain. Key commands, if you prefer to run them by hand:
+```text
+Cost Explorer observation
+        |
+SNS topic → confirmed subscription
+        |
+Budget
+        |
+actual and forecast notifications
+```
+
+Notifications cannot be attached before the budget exists. A rerun of an existing budget may be treated as a modification, so the IAM policy and cleanup path must account for both create and update behavior.
+
+## Implementation
+
+### 1. Inspect cost data
 
 ```bash
-# 1. Cost Explorer (needs a real time period; results fill in over 24h)
 aws ce get-cost-and-usage \
-    --time-period Start=2026-08-01,End=2026-08-15 \
-    --granularity MONTHLY \
-    --metrics BlendedCost \
-    --group-by Type=DIMENSION,Key=SERVICE
+  --time-period Start=<start-date>,End=<end-date> \
+  --granularity MONTHLY \
+  --metrics BlendedCost \
+  --group-by Type=DIMENSION,Key=SERVICE
+```
 
-# 2. SNS topic and email subscription (confirm the email link!)
+Cost Explorer data can take time to populate. Empty data is not automatically a failure.
+
+### 2. Create and confirm the notification channel
+
+```bash
 aws sns create-topic --name cost-monitoring-alerts
-aws sns subscribe --topic-arn <topic-arn> --protocol email --notification-endpoint <you@example.com>
+aws sns subscribe --topic-arn <topic-arn> \
+  --protocol email \
+  --notification-endpoint <you@example.com>
+```
 
-# 3-5. Budget + notifications
-# see scripts/setup-budget.sh for the complete flow with a budget JSON file
+The subscription remains ineffective until the recipient confirms it. Read `list-subscriptions` back and distinguish `Confirmed` from `PendingConfirmation`.
+
+### 3. Create the budget and thresholds
+
+The complete scripts are under [`scripts/`](scripts/). The dependency order is:
+
+```bash
 aws budgets create-budget --account-id <account-id> --budget file://budget-config.json
 aws budgets create-notification --account-id <account-id> --budget-name <name> --cli-input-json file://notification.json
 ```
 
-## IAM policy
-
-The inline policy in [`iam-policy.json`](iam-policy.json) covers exactly the actions the lab needs: read Cost Explorer, manage budgets, and create/subscribe SNS topics.
-
-One trap worth knowing: `budgets:CreateBudget` on an already-existing budget name is treated as an update and requires `budgets:ModifyBudget`. The policy uses `budgets:*` so re-runs and cleanup work without surprises.
+Create the budget first, then add three actual thresholds and one forecast threshold.
 
 ## Verification
 
-Read state back, do not trust exit codes:
-
 ```bash
-# budget exists with the right limit
 aws budgets describe-budgets --account-id <account-id>
-
-# exactly 4 notifications: ACTUAL 50/75/90 + FORECASTED 100
-aws budgets describe-notifications-for-budget --account-id <account-id> --budget-name <name>
-
-# subscription is confirmed, not PendingConfirmation
+aws budgets describe-notifications-for-budget \
+  --account-id <account-id> \
+  --budget-name <name>
 aws sns list-subscriptions
 ```
 
-Cost Explorer shows empty results on a fresh account until up to 24 hours of data accumulate. An empty answer is expected, not an error.
+The target state is one budget with the intended limit, exactly four notifications, and a confirmed email subscription. Read the state back rather than relying on silent create commands.
 
-## Cost
+## Failure boundaries
 
-Roughly $0 at lab scale: Cost Explorer is free, the first two budgets are within the free tier, and SNS email notifications are free. The only chargeable pieces would be extra budgets beyond the free tier or other notification protocols (SMS, etc.).
+- `AccessDenied` from Cost Explorer can mean the environment does not expose billing APIs, not that the CLI is broken.
+- `NotFoundException` while creating a notification usually means the budget was never created or the name drifted.
+- A `PendingConfirmation` SNS subscription means the email link has not been confirmed.
+- A stored command or policy with an empty account/name variable can produce misleading downstream errors.
 
 ## Cleanup
 
-[`scripts/cleanup.sh`](scripts/cleanup.sh) removes the notifications, the budget, and the SNS topic, then confirms both `describe-budgets` and `list-topics` return empty. Cleanup is part of the lab, not optional.
+Cost Explorer is free; budgets and SNS may have account-specific free-tier limits and protocol charges. Cleanup is part of the implementation:
 
-## What this lab teaches
+```bash
+scripts/cleanup.sh
+```
 
-- Billing services are account-level: a real account with billing access is required, and the environment choice matters before you start.
-- Dependency order: notifications fail with `NotFoundException` until the budget exists.
-- Verification means reading state back, not watching a success message.
-- IAM changes propagate slowly: attach the policy, wait, then re-test.
-- The graduated-threshold pattern (50/75/90 actual + 100 forecast) transfers directly to CloudWatch alarms and other monitoring.
+The cleanup script removes notifications, the budget, and the SNS topic, then verifies that the named resources are absent.
