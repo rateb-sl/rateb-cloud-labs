@@ -19,7 +19,8 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 | [09. Cost monitoring with Cost Explorer + Budgets](labs/09-cost-monitoring-explorer-budgets/) | A $100 monthly budget with graduated alerts (50/75/90% actual + 100% forecast) delivered over SNS. |
 | [10. Secrets Manager + Lambda](labs/10-secrets-manager-lambda/) | No hardcoded credentials: a Lambda function retrieves a secret at runtime via the Parameters and Secrets extension. |
 | [11. Secure EC2 management with Systems Manager](labs/11-secure-ec2-systems-manager/) | Session Manager, Run Command, IAM caller separation, fail-fast troubleshooting, CloudWatch session logging, and cleanup verification. |
-| [12. Fine-grained IAM access control](labs/12-fine-grained-iam-access-control/) | Request-context authorization: time, IP, tags, MFA, trust/resource/session policies, semantic validation, simulation, and cleanup evidence. |
+| [12. Fine-grained IAM access control](labs/12-fine-grained-iam-access-control/) | Request-context authorization: *** IP, tags, MFA, trust/resource/session policies, semantic validation, simulation, and cleanup evidence. |
+| [13. Automated patching with Systems Manager](labs/13-automated-patching-systems-manager/) | Patch baseline selection, tag-based targeting, scheduled Scan/Install tasks, compliance evidence, EventBridge alerting, and dependency-aware cleanup. |
 
 ## Working principles
 
@@ -44,7 +45,8 @@ labs/
 ├── 09-cost-monitoring-explorer-budgets/
 ├── 10-secrets-manager-lambda/
 ├── 11-secure-ec2-systems-manager/
-└── 12-fine-grained-iam-access-control/
+├── 12-fine-grained-iam-access-control/
+└── 13-automated-patching-systems-manager/
 ```
 
 ## Scope and safety

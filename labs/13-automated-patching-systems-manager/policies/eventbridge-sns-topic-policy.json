@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "AllowEventBridgePublish",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "events.amazonaws.com"
+      },
+      "Action": "sns:Publish",
+      "Resource": "<sns-topic-arn>",
+      "Condition": {
+        "ArnEquals": {
+          "aws:SourceArn": "<eventbridge-rule-arn>"
+        }
+      }
+    }
+  ]
+}
