@@ -21,6 +21,7 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 | [11. Secure EC2 management with Systems Manager](labs/11-secure-ec2-systems-manager/) | Session Manager, Run Command, IAM caller separation, fail-fast troubleshooting, CloudWatch session logging, and cleanup verification. |
 | [12. Fine-grained IAM access control](labs/12-fine-grained-iam-access-control/) | Request-context authorization: *** IP, tags, MFA, trust/resource/session policies, semantic validation, simulation, and cleanup evidence. |
 | [13. Automated patching with Systems Manager](labs/13-automated-patching-systems-manager/) | Patch baseline selection, tag-based targeting, scheduled Scan/Install tasks, compliance evidence, EventBridge alerting, and dependency-aware cleanup. |
+| [14. Basic log monitoring with CloudWatch](labs/14-basic-log-monitoring-cloudwatch/) | Plain-text log filtering, custom metrics, alarm evaluation, SNS fan-out, Lambda processing, and cleanup verification. |
 
 ## Working principles
 
@@ -46,7 +47,8 @@ labs/
 ├── 10-secrets-manager-lambda/
 ├── 11-secure-ec2-systems-manager/
 ├── 12-fine-grained-iam-access-control/
-└── 13-automated-patching-systems-manager/
+├── 13-automated-patching-systems-manager/
+└── 14-basic-log-monitoring-cloudwatch/
 ```
 
 ## Scope and safety
