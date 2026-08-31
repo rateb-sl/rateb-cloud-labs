@@ -22,6 +22,7 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 | [12. Fine-grained IAM access control](labs/12-fine-grained-iam-access-control/) | Request-context authorization: *** IP, tags, MFA, trust/resource/session policies, semantic validation, simulation, and cleanup evidence. |
 | [13. Automated patching with Systems Manager](labs/13-automated-patching-systems-manager/) | Patch baseline selection, tag-based targeting, scheduled Scan/Install tasks, compliance evidence, EventBridge alerting, and dependency-aware cleanup. |
 | [14. Basic log monitoring with CloudWatch](labs/14-basic-log-monitoring-cloudwatch/) | Plain-text log filtering, custom metrics, alarm evaluation, SNS fan-out, Lambda processing, and cleanup verification. |
+| [15. Remote S3 backend for Terraform](labs/15-terraform-remote-s3-backend/) | Remote state storage, backend migration semantics, independent backend/provider regions, and cleanup verification. |
 
 ## Working principles
 
@@ -48,7 +49,8 @@ labs/
 ├── 11-secure-ec2-systems-manager/
 ├── 12-fine-grained-iam-access-control/
 ├── 13-automated-patching-systems-manager/
-└── 14-basic-log-monitoring-cloudwatch/
+├── 14-basic-log-monitoring-cloudwatch/
+└── 15-terraform-remote-s3-backend/
 ```
 
 ## Scope and safety

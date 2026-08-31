@@ -1,0 +1,24 @@
+terraform {
+  required_version = "~> 1.7"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.0"
+    }
+  }
+
+  backend "s3" {
+    bucket = "<your-unique-state-bucket>"
+    key    = "04-backend/state.tfstate"
+    region = "<state-bucket-region>"
+  }
+}
+
+provider "aws" {
+  region = "<application-region>"
+}
