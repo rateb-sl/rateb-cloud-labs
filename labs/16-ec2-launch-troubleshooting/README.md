@@ -130,13 +130,13 @@ A complete application test requires the Café page to load, two different order
 | TCP reachability | `80/tcp` reported open by `nmap` | Does not prove the expected application response |
 | Apache | `httpd` reported active on the web server | Does not prove PHP/database behavior |
 | Bootstrap | Café files were extracted, database creation completed, and cloud-init finished | Does not replace an end-to-end application test |
-| Café route verification | The sandbox browser timed out while requesting `/cafe` even though port 80, Apache, and bootstrap checks passed | The browser/client path and database-backed ordering were not independently verified in this run |
+| Café route verification | The initial sandbox browser request timed out, but the learner later confirmed that `/cafe` loaded and the two-order history workflow worked on a subsequent retry | Final application result is learner-confirmed; no independent screenshot/read-back was captured in this session |
 
 ## Portfolio status
 
-The core EC2 troubleshooting and LAMP bootstrap objectives completed successfully: the Region/AMI defect was corrected, the instance launched, TCP/80 was reachable, Apache was active, and cloud-init completed the application and database bootstrap. The final `/cafe` browser workflow was not independently verified because the managed sandbox browser timed out. This artifact deliberately separates the successful infrastructure evidence from the unverified application endpoint rather than claiming a result that was not observed.
+The lab outcome was successful: the Region/AMI defect was corrected, the instance launched, TCP/80 was reachable, Apache was active, cloud-init completed the application and database bootstrap, and the learner later confirmed that the Café route and two-order history workflow worked. The initial browser timeout was transient sandbox evidence, not the final application result. The final application check is recorded as learner-confirmed because the successful retry was reported directly rather than independently captured in this session.
 
-A production investigation would continue by comparing the current public address, testing from an independent client, and checking the exact HTTP response path without relaunching unrelated resources.
+A production investigation would still preserve the same layered checks: compare the current public address, test from an independent client, and check the exact HTTP response path without relaunching unrelated resources.
 
 ## Cleanup
 
