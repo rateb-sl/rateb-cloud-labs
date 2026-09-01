@@ -24,6 +24,8 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 | [14. Basic log monitoring with CloudWatch](labs/14-basic-log-monitoring-cloudwatch/) | Plain-text log filtering, custom metrics, alarm evaluation, SNS fan-out, Lambda processing, and cleanup verification. |
 | [15. Remote S3 backend for Terraform](labs/15-terraform-remote-s3-backend/) | Remote state storage, backend migration semantics, independent backend/provider regions, and cleanup verification. |
 | [16. EC2 launch troubleshooting](labs/16-ec2-launch-troubleshooting/) | Region-scoped AMI troubleshooting, layered HTTP reachability checks, cloud-init evidence, and honest application-test boundaries. |
+| [17. S3 + CloudFront static website with the AWS CLI](labs/17-s3-cloudfront-static-website-cli/) | Manual S3 website configuration, public object reads, CloudFront HTTP origin behavior, HTTPS redirect, and cleanup verification. |
+| [18. S3 + CloudFront static website with Terraform](labs/18-s3-cloudfront-static-website-terraform/) | Declarative dependency management for S3 website hosting, CloudFront, object uploads, plan review, state read-back, and cleanup. |
 
 ## Working principles
 
@@ -52,7 +54,9 @@ labs/
 ├── 13-automated-patching-systems-manager/
 ├── 14-basic-log-monitoring-cloudwatch/
 ├── 15-terraform-remote-s3-backend/
-└── 16-ec2-launch-troubleshooting/
+├── 16-ec2-launch-troubleshooting/
+├── 17-s3-cloudfront-static-website-cli/
+└── 18-s3-cloudfront-static-website-terraform/
 ```
 
 ## Scope and safety
