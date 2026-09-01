@@ -23,6 +23,7 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 | [13. Automated patching with Systems Manager](labs/13-automated-patching-systems-manager/) | Patch baseline selection, tag-based targeting, scheduled Scan/Install tasks, compliance evidence, EventBridge alerting, and dependency-aware cleanup. |
 | [14. Basic log monitoring with CloudWatch](labs/14-basic-log-monitoring-cloudwatch/) | Plain-text log filtering, custom metrics, alarm evaluation, SNS fan-out, Lambda processing, and cleanup verification. |
 | [15. Remote S3 backend for Terraform](labs/15-terraform-remote-s3-backend/) | Remote state storage, backend migration semantics, independent backend/provider regions, and cleanup verification. |
+| [16. EC2 launch troubleshooting](labs/16-ec2-launch-troubleshooting/) | Region-scoped AMI troubleshooting, layered HTTP reachability checks, cloud-init evidence, and honest application-test boundaries. |
 
 ## Working principles
 
@@ -50,7 +51,8 @@ labs/
 ├── 12-fine-grained-iam-access-control/
 ├── 13-automated-patching-systems-manager/
 ├── 14-basic-log-monitoring-cloudwatch/
-└── 15-terraform-remote-s3-backend/
+├── 15-terraform-remote-s3-backend/
+└── 16-ec2-launch-troubleshooting/
 ```
 
 ## Scope and safety
