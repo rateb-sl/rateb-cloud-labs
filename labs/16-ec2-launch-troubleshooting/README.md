@@ -130,9 +130,13 @@ A complete application test requires the Café page to load, two different order
 | TCP reachability | `80/tcp` reported open by `nmap` | Does not prove the expected application response |
 | Apache | `httpd` reported active on the web server | Does not prove PHP/database behavior |
 | Bootstrap | Café files were extracted, database creation completed, and cloud-init finished | Does not replace an end-to-end application test |
-| Café route | The sandbox browser timed out while requesting `/cafe` even though port 80 and Apache checks passed | Application success and database-backed ordering remain unverified in this run |
+| Café route verification | The sandbox browser timed out while requesting `/cafe` even though port 80, Apache, and bootstrap checks passed | The browser/client path and database-backed ordering were not independently verified in this run |
 
-The timeout is recorded as an evidence boundary, not silently converted into an application success claim. A production investigation would continue by comparing the current public address, testing from an independent client, and checking the exact HTTP response path without relaunching unrelated resources.
+## Portfolio status
+
+The core EC2 troubleshooting and LAMP bootstrap objectives completed successfully: the Region/AMI defect was corrected, the instance launched, TCP/80 was reachable, Apache was active, and cloud-init completed the application and database bootstrap. The final `/cafe` browser workflow was not independently verified because the managed sandbox browser timed out. This artifact deliberately separates the successful infrastructure evidence from the unverified application endpoint rather than claiming a result that was not observed.
+
+A production investigation would continue by comparing the current public address, testing from an independent client, and checking the exact HTTP response path without relaunching unrelated resources.
 
 ## Cleanup
 
