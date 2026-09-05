@@ -41,6 +41,7 @@ This is the canonical Cloud Engineering portfolio repository. End-to-end applica
 | [18. S3 + CloudFront static website with Terraform](labs/18-s3-cloudfront-static-website-terraform/) | Declarative dependency management for S3 website hosting, CloudFront, object uploads, plan review, state read-back, and cleanup. |
 | [19. Terraform fundamentals with LocalStack](labs/19-terraform-get-started-localstack/) | Terraform lifecycle, variables, outputs, modules, state, update-in-place versus replacement, and a zero-cost AWS-compatible sandbox. |
 | [20. API Gateway + DynamoDB URL shortener](labs/20-api-gateway-dynamodb-url-shortener/) | REST API resource wiring, Lambda proxy integrations, invoke permissions, least-privilege DynamoDB access, end-to-end verification, and dependency-aware cleanup. |
+| [21. S3 event-driven processing](labs/21-s3-event-driven-processing/) | S3 prefix notifications, Lambda processing, structured SQS failure handoff, SNS alert publication, CloudWatch evidence, and versioned-bucket cleanup. |
 
 ## Working principles
 
@@ -73,7 +74,8 @@ labs/
 ├── 17-s3-cloudfront-static-website-cli/
 ├── 18-s3-cloudfront-static-website-terraform/
 ├── 19-terraform-get-started-localstack/
-└── 20-api-gateway-dynamodb-url-shortener/
+├── 20-api-gateway-dynamodb-url-shortener/
+└── 21-s3-event-driven-processing/
 ```
 
 ## Scope and safety

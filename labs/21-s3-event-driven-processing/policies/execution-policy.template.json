@@ -1,0 +1,43 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ProcessBucketObjects",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "s3:PutObject"
+      ],
+      "Resource": [
+        "arn:aws:s3:::<bucket-name>/data/*",
+        "arn:aws:s3:::<bucket-name>/reports/*"
+      ]
+    },
+    {
+      "Sid": "WriteStructuredFailure",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:SendMessage"
+      ],
+      "Resource": "<dlq-arn>"
+    },
+    {
+      "Sid": "ConsumeStructuredFailure",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:ReceiveMessage",
+        "sqs:DeleteMessage",
+        "sqs:ChangeMessageVisibility",
+        "sqs:GetQueueAttributes"
+      ],
+      "Resource": "<dlq-arn>"
+    },
+    {
+      "Sid": "PublishFailureAlert",
+      "Effect": "Allow",
+      "Action": "sns:Publish",
+      "Resource": "<sns-topic-arn>"
+    }
+  ]
+}
