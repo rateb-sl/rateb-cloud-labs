@@ -1,0 +1,42 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Secure, versioned S3 bucket managed by CloudFormation
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: Globally unique name for the S3 bucket
+    MinLength: 3
+    MaxLength: 63
+
+Resources:
+  LabBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+      VersioningConfiguration:
+        Status: Enabled
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+            BucketKeyEnabled: true
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      Tags:
+        - Key: Environment
+          Value: Development
+        - Key: Purpose
+          Value: CloudFormation-S3-Lab
+
+Outputs:
+  BucketName:
+    Description: Name of the created S3 bucket
+    Value: !Ref LabBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'
+  BucketArn:
+    Description: ARN of the created S3 bucket
+    Value: !GetAtt LabBucket.Arn

@@ -8,7 +8,7 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 
 | If you want to see… | Start with… |
 | --- | --- |
-| Cloud operations and AWS services | [Labs 01–20](#labs) |
+| Cloud operations and AWS services | [Labs 01–22](#labs) |
 | Terraform and infrastructure as code | [Lab 15](labs/15-terraform-remote-s3-backend/) and [Lab 18](labs/18-s3-cloudfront-static-website-terraform/) |
 | Troubleshooting and operational reasoning | [Lab 05](labs/05-website-outage-runbook/) and [Lab 16](labs/16-ec2-launch-troubleshooting/) |
 | A complete static website path | [Lab 17: AWS CLI](labs/17-s3-cloudfront-static-website-cli/) and [Lab 18: Terraform](labs/18-s3-cloudfront-static-website-terraform/) |
@@ -42,6 +42,7 @@ This is the canonical Cloud Engineering portfolio repository. End-to-end applica
 | [19. Terraform fundamentals with LocalStack](labs/19-terraform-get-started-localstack/) | Terraform lifecycle, variables, outputs, modules, state, update-in-place versus replacement, and a zero-cost AWS-compatible sandbox. |
 | [20. API Gateway + DynamoDB URL shortener](labs/20-api-gateway-dynamodb-url-shortener/) | REST API resource wiring, Lambda proxy integrations, invoke permissions, least-privilege DynamoDB access, end-to-end verification, and dependency-aware cleanup. |
 | [21. S3 event-driven processing](labs/21-s3-event-driven-processing/) | S3 prefix notifications, Lambda processing, structured SQS failure handoff, SNS alert publication, CloudWatch evidence, and versioned-bucket cleanup. |
+| [22. CloudFormation + S3](labs/22-cloudformation-s3/) | Declarative S3 provisioning with encryption, versioning, public-access blocking, state read-back, functional testing, and version-aware cleanup. |
 
 ## Working principles
 
@@ -75,7 +76,8 @@ labs/
 ├── 18-s3-cloudfront-static-website-terraform/
 ├── 19-terraform-get-started-localstack/
 ├── 20-api-gateway-dynamodb-url-shortener/
-└── 21-s3-event-driven-processing/
+├── 21-s3-event-driven-processing/
+└── 22-cloudformation-s3/
 ```
 
 ## Scope and safety
