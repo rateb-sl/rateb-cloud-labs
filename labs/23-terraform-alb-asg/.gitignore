@@ -1,0 +1,23 @@
+# Terraform working data
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+destroy.tfplan
+crash.log
+crash.*.log
+
+# Local secrets and backend values
+.backend-vars.sh
+.env
+*.auto.tfvars
+*.auto.tfvars.json
+*.tfvars
+
+# Tooling and OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~

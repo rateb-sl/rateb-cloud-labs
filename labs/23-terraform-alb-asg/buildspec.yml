@@ -1,0 +1,29 @@
+version: 0.2
+
+env:
+  variables:
+    TF_VERSION: "1.15.8"
+    ENVIRONMENT: "dev"
+
+phases:
+  install:
+    commands:
+      - curl -fsSLo terraform.zip "https://releases.hashicorp.com/terraform/${TF_VERSION}/terraform_${TF_VERSION}_linux_amd64.zip"
+      - unzip -o terraform.zip
+      - mv terraform /usr/local/bin/terraform
+      - terraform version
+  pre_build:
+    commands:
+      - terraform init -input=false
+      - terraform fmt -check -recursive
+      - terraform validate
+  build:
+    commands:
+      - terraform plan -input=false -var-file="environments/${ENVIRONMENT}/terraform.tfvars" -out=tfplan
+  post_build:
+    commands:
+      - terraform output -json > outputs.json || true
+artifacts:
+  files:
+    - outputs.json
+    - tfplan

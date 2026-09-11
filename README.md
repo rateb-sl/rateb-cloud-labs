@@ -43,6 +43,7 @@ This is the canonical Cloud Engineering portfolio repository. End-to-end applica
 | [20. API Gateway + DynamoDB URL shortener](labs/20-api-gateway-dynamodb-url-shortener/) | REST API resource wiring, Lambda proxy integrations, invoke permissions, least-privilege DynamoDB access, end-to-end verification, and dependency-aware cleanup. |
 | [21. S3 event-driven processing](labs/21-s3-event-driven-processing/) | S3 prefix notifications, Lambda processing, structured SQS failure handoff, SNS alert publication, CloudWatch evidence, and versioned-bucket cleanup. |
 | [22. CloudFormation + S3](labs/22-cloudformation-s3/) | Declarative S3 provisioning with encryption, versioning, public-access blocking, state read-back, functional testing, and version-aware cleanup. |
+| [23. Terraform ALB + Auto Scaling](labs/23-terraform-alb-asg/) | Modular VPC and compute provisioning, remote state, IMDSv2-safe bootstrap, ALB health verification, instance refresh, and dependency-aware cleanup. |
 
 ## Working principles
 
@@ -77,7 +78,8 @@ labs/
 ├── 19-terraform-get-started-localstack/
 ├── 20-api-gateway-dynamodb-url-shortener/
 ├── 21-s3-event-driven-processing/
-└── 22-cloudformation-s3/
+├── 22-cloudformation-s3/
+└── 23-terraform-alb-asg/
 ```
 
 ## Scope and safety
