@@ -44,6 +44,7 @@ This is the canonical Cloud Engineering portfolio repository. End-to-end applica
 | [21. S3 event-driven processing](labs/21-s3-event-driven-processing/) | S3 prefix notifications, Lambda processing, structured SQS failure handoff, SNS alert publication, CloudWatch evidence, and versioned-bucket cleanup. |
 | [22. CloudFormation + S3](labs/22-cloudformation-s3/) | Declarative S3 provisioning with encryption, versioning, public-access blocking, state read-back, functional testing, and version-aware cleanup. |
 | [23. Terraform ALB + Auto Scaling](labs/23-terraform-alb-asg/) | Modular VPC and compute provisioning, remote state, IMDSv2-safe bootstrap, ALB health verification, instance refresh, and dependency-aware cleanup. |
+| [24. Elastic Load Balancing with ALB and NLB](labs/24-elastic-load-balancing-alb-nlb/) | Layer 7 HTTP and Layer 4 TCP load balancing, target-group health checks, security-group boundaries, endpoint verification, and dependency-aware cleanup. |
 
 ## Working principles
 
@@ -79,7 +80,8 @@ labs/
 ├── 20-api-gateway-dynamodb-url-shortener/
 ├── 21-s3-event-driven-processing/
 ├── 22-cloudformation-s3/
-└── 23-terraform-alb-asg/
+├── 23-terraform-alb-asg/
+└── 24-elastic-load-balancing-alb-nlb/
 ```
 
 ## Scope and safety
