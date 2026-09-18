@@ -1,0 +1,36 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "WriteOwnLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "arn:aws:logs:<region>:<account-id>:*"
+    },
+    {
+      "Sid": "ReadReportParameters",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
+      "Resource": "arn:aws:ssm:<region>:<account-id>:parameter/cafe/*"
+    },
+    {
+      "Sid": "InvokeOnlyExtractor",
+      "Effect": "Allow",
+      "Action": "lambda:InvokeFunction",
+      "Resource": "arn:aws:lambda:<region>:<account-id>:function:salesAnalysisReportDataExtractor"
+    },
+    {
+      "Sid": "PublishOnlyReportTopic",
+      "Effect": "Allow",
+      "Action": "sns:Publish",
+      "Resource": "arn:aws:sns:<region>:<account-id>:salesAnalysisReportTopic"
+    }
+  ]
+}

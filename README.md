@@ -46,6 +46,7 @@ This is the canonical Cloud Engineering portfolio repository. End-to-end applica
 | [23. Terraform ALB + Auto Scaling](labs/23-terraform-alb-asg/) | Modular VPC and compute provisioning, remote state, IMDSv2-safe bootstrap, ALB health verification, instance refresh, and dependency-aware cleanup. |
 | [24. Elastic Load Balancing with ALB and NLB](labs/24-elastic-load-balancing-alb-nlb/) | Layer 7 HTTP and Layer 4 TCP load balancing, target-group health checks, security-group boundaries, endpoint verification, and dependency-aware cleanup. |
 | [25. Running containers with AWS Fargate](labs/25-running-containers-fargate/) | Image-to-runtime dependency tracing across Docker, ECR, ECS task definitions, Fargate networking, health checks, Application Auto Scaling, and cleanup verification. |
+| [26. Lambda sales report workflow](labs/26-lambda-sales-report-workflow/) | A scheduled EventBridge → Lambda → VPC database extractor → SNS report path, with IAM, layer, network, timeout, ARN, evidence, and cleanup boundaries. |
 
 ## Working principles
 
@@ -83,7 +84,8 @@ labs/
 ├── 22-cloudformation-s3/
 ├── 23-terraform-alb-asg/
 ├── 24-elastic-load-balancing-alb-nlb/
-└── 25-running-containers-fargate/
+├── 25-running-containers-fargate/
+└── 26-lambda-sales-report-workflow/
 ```
 
 ## Scope and safety
