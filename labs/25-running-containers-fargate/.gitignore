@@ -1,0 +1,6 @@
+# Local lab state
+vars.sh
+task-definition.json
+/task-execution-trust-policy.json
+*.log
+.DS_Store

@@ -8,7 +8,7 @@ These are reconstructed, sanitized learning artifacts. They do not include cours
 
 | If you want to see… | Start with… |
 | --- | --- |
-| Cloud operations and AWS services | [Labs 01–22](#labs) |
+| Cloud operations and AWS services | [Labs 01–25](#labs) |
 | Terraform and infrastructure as code | [Lab 15](labs/15-terraform-remote-s3-backend/) and [Lab 18](labs/18-s3-cloudfront-static-website-terraform/) |
 | Troubleshooting and operational reasoning | [Lab 05](labs/05-website-outage-runbook/) and [Lab 16](labs/16-ec2-launch-troubleshooting/) |
 | A complete static website path | [Lab 17: AWS CLI](labs/17-s3-cloudfront-static-website-cli/) and [Lab 18: Terraform](labs/18-s3-cloudfront-static-website-terraform/) |
@@ -45,6 +45,7 @@ This is the canonical Cloud Engineering portfolio repository. End-to-end applica
 | [22. CloudFormation + S3](labs/22-cloudformation-s3/) | Declarative S3 provisioning with encryption, versioning, public-access blocking, state read-back, functional testing, and version-aware cleanup. |
 | [23. Terraform ALB + Auto Scaling](labs/23-terraform-alb-asg/) | Modular VPC and compute provisioning, remote state, IMDSv2-safe bootstrap, ALB health verification, instance refresh, and dependency-aware cleanup. |
 | [24. Elastic Load Balancing with ALB and NLB](labs/24-elastic-load-balancing-alb-nlb/) | Layer 7 HTTP and Layer 4 TCP load balancing, target-group health checks, security-group boundaries, endpoint verification, and dependency-aware cleanup. |
+| [25. Running containers with AWS Fargate](labs/25-running-containers-fargate/) | Image-to-runtime dependency tracing across Docker, ECR, ECS task definitions, Fargate networking, health checks, Application Auto Scaling, and cleanup verification. |
 
 ## Working principles
 
@@ -81,7 +82,8 @@ labs/
 ├── 21-s3-event-driven-processing/
 ├── 22-cloudformation-s3/
 ├── 23-terraform-alb-asg/
-└── 24-elastic-load-balancing-alb-nlb/
+├── 24-elastic-load-balancing-alb-nlb/
+└── 25-running-containers-fargate/
 ```
 
 ## Scope and safety

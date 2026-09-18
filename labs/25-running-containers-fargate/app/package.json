@@ -1,0 +1,13 @@
+{
+  "name": "fargate-demo-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Small HTTP application used by the AWS Fargate lab",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "express": "4.22.3"
+  }
+}
